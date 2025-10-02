@@ -1,0 +1,285 @@
+blueprint:
+  name: Z-Wave.me WALLC-S (4-button wall switch) v1.0
+  description: |
+    Automation blueprint for the Z-Wave.me WALLC-S 4-button wall switch (via Z-Wave JS).
+    Each button set (left: buttons 1+2, right: buttons 3+4) can be configured in two modes:
+      - **Lamp mode**: assign a dimmable light, with automatic ON, OFF, and dimming behavior  
+        (top = on, bottom = off, hold = dim up/down, release = stop dimming).
+      - **Custom mode**: define your own single, double, hold and release actions.
+  domain: automation
+  input:
+    remote_device:
+      name: Z-Wave device
+      description: Select the Z-Wave.me WALLC-S device
+      selector:
+        device: {}
+
+    # -------------------------------
+    # Left button set (button 1 + 2)
+    # -------------------------------
+    left_mode:
+      name: Left button set mode
+      description: Choose between lamp control or custom actions
+      default: lamp
+      selector:
+        select:
+          options:
+            - lamp
+            - custom
+
+    left_light:
+      name: Left light (if mode = lamp)
+      description: Choose a dimmable light entity
+      default: []
+      selector:
+        entity:
+          domain: light
+
+    left_up_single:
+      name: Button 1 (top left) - single
+      default: []
+      selector:
+        action: {}
+    left_up_double:
+      name: Button 1 (top left) - double
+      default: []
+      selector:
+        action: {}
+    left_up_hold:
+      name: Button 1 (top left) - hold
+      default: []
+      selector:
+        action: {}
+    left_up_release:
+      name: Button 1 (top left) - release
+      default: []
+      selector:
+        action: {}
+
+    left_down_single:
+      name: Button 2 (bottom left) - single
+      default: []
+      selector:
+        action: {}
+    left_down_double:
+      name: Button 2 (bottom left) - double
+      default: []
+      selector:
+        action: {}
+    left_down_hold:
+      name: Button 2 (bottom left) - hold
+      default: []
+      selector:
+        action: {}
+    left_down_release:
+      name: Button 2 (bottom left) - release
+      default: []
+      selector:
+        action: {}
+
+    # -------------------------------
+    # Right button set (button 3 + 4)
+    # -------------------------------
+    right_mode:
+      name: Right button set mode
+      description: Choose between lamp control or custom actions
+      default: lamp
+      selector:
+        select:
+          options:
+            - lamp
+            - custom
+
+    right_light:
+      name: Right light (if mode = lamp)
+      description: Choose a dimmable light entity
+      default: []
+      selector:
+        entity:
+          domain: light
+
+    right_up_single:
+      name: Button 3 (top right) - single
+      default: []
+      selector:
+        action: {}
+    right_up_double:
+      name: Button 3 (top right) - double
+      default: []
+      selector:
+        action: {}
+    right_up_hold:
+      name: Button 3 (top right) - hold
+      default: []
+      selector:
+        action: {}
+    right_up_release:
+      name: Button 3 (top right) - release
+      default: []
+      selector:
+        action: {}
+
+    right_down_single:
+      name: Button 4 (bottom right) - single
+      default: []
+      selector:
+        action: {}
+    right_down_double:
+      name: Button 4 (bottom right) - double
+      default: []
+      selector:
+        action: {}
+    right_down_hold:
+      name: Button 4 (bottom right) - hold
+      default: []
+      selector:
+        action: {}
+    right_down_release:
+      name: Button 4 (bottom right) - release
+      default: []
+      selector:
+        action: {}
+
+mode: restart
+max_exceeded: silent
+
+trigger:
+  - platform: event
+    event_type: zwave_js_value_notification
+    event_data:
+      command_class: 91
+    id: zwave_event
+
+variables:
+  device_id: !input remote_device
+
+action:
+  - variables:
+      event: "{{ trigger.event.data }}"
+      scene_key: "{{ event.property_key }}"
+      scene_value: "{{ event.value }}"
+      left_mode: !input left_mode
+      right_mode: !input right_mode
+      left_light: !input left_light
+      right_light: !input right_light
+
+  - choose:
+      # ------------------------------------------------
+      # LEFT BUTTON SET (button 1 = '001', button 2 = '005')
+      # ------------------------------------------------
+      - conditions: "{{ device_id == event.device_id and left_mode == 'lamp' }}"
+        sequence:
+          - choose:
+              # Top left single = ON
+              - conditions: "{{ scene_key == '001' and scene_value == 0 }}"
+                sequence:
+                  - service: light.turn_on
+                    target: { entity_id: "{{ left_light }}" }
+
+              # Bottom left single = OFF
+              - conditions: "{{ scene_key == '005' and scene_value == 0 }}"
+                sequence:
+                  - service: light.turn_off
+                    target: { entity_id: "{{ left_light }}" }
+
+              # Top left hold = dim up
+              - conditions: "{{ scene_key == '001' and scene_value == 2 }}"
+                sequence:
+                  - repeat:
+                      until: "{{ repeat.index > 20 or scene_value == 1 }}"
+                      sequence:
+                        - service: light.turn_on
+                          target: { entity_id: "{{ left_light }}" }
+                          data: { brightness_step_pct: 5 }
+                        - delay: "0.3"
+
+              # Bottom left hold = dim down
+              - conditions: "{{ scene_key == '005' and scene_value == 2 }}"
+                sequence:
+                  - repeat:
+                      until: "{{ repeat.index > 20 or scene_value == 1 }}"
+                      sequence:
+                        - service: light.turn_on
+                          target: { entity_id: "{{ left_light }}" }
+                          data: { brightness_step_pct: -5 }
+                        - delay: "0.3"
+
+      - conditions: "{{ device_id == event.device_id and left_mode == 'custom' }}"
+        sequence:
+          - choose:
+              - conditions: "{{ scene_key == '001' and scene_value == 0 }}"
+                sequence: !input left_up_single
+              - conditions: "{{ scene_key == '001' and scene_value == 3 }}"
+                sequence: !input left_up_double
+              - conditions: "{{ scene_key == '001' and scene_value == 2 }}"
+                sequence: !input left_up_hold
+              - conditions: "{{ scene_key == '001' and scene_value == 1 }}"
+                sequence: !input left_up_release
+              - conditions: "{{ scene_key == '005' and scene_value == 0 }}"
+                sequence: !input left_down_single
+              - conditions: "{{ scene_key == '005' and scene_value == 3 }}"
+                sequence: !input left_down_double
+              - conditions: "{{ scene_key == '005' and scene_value == 2 }}"
+                sequence: !input left_down_hold
+              - conditions: "{{ scene_key == '005' and scene_value == 1 }}"
+                sequence: !input left_down_release
+
+      # ------------------------------------------------
+      # RIGHT BUTTON SET (button 3 = '002', button 4 = '006')
+      # ------------------------------------------------
+      - conditions: "{{ device_id == event.device_id and right_mode == 'lamp' }}"
+        sequence:
+          - choose:
+              # Top right single = ON
+              - conditions: "{{ scene_key == '002' and scene_value == 0 }}"
+                sequence:
+                  - service: light.turn_on
+                    target: { entity_id: "{{ right_light }}" }
+
+              # Bottom right single = OFF
+              - conditions: "{{ scene_key == '006' and scene_value == 0 }}"
+                sequence:
+                  - service: light.turn_off
+                    target: { entity_id: "{{ right_light }}" }
+
+              # Top right hold = dim up
+              - conditions: "{{ scene_key == '002' and scene_value == 2 }}"
+                sequence:
+                  - repeat:
+                      until: "{{ repeat.index > 20 or scene_value == 1 }}"
+                      sequence:
+                        - service: light.turn_on
+                          target: { entity_id: "{{ right_light }}" }
+                          data: { brightness_step_pct: 5 }
+                        - delay: "0.3"
+
+              # Bottom right hold = dim down
+              - conditions: "{{ scene_key == '006' and scene_value == 2 }}"
+                sequence:
+                  - repeat:
+                      until: "{{ repeat.index > 20 or scene_value == 1 }}"
+                      sequence:
+                        - service: light.turn_on
+                          target: { entity_id: "{{ right_light }}" }
+                          data: { brightness_step_pct: -5 }
+                        - delay: "0.3"
+
+      - conditions: "{{ device_id == event.device_id and right_mode == 'custom' }}"
+        sequence:
+          - choose:
+              - conditions: "{{ scene_key == '002' and scene_value == 0 }}"
+                sequence: !input right_up_single
+              - conditions: "{{ scene_key == '002' and scene_value == 3 }}"
+                sequence: !input right_up_double
+              - conditions: "{{ scene_key == '002' and scene_value == 2 }}"
+                sequence: !input right_up_hold
+              - conditions: "{{ scene_key == '002' and scene_value == 1 }}"
+                sequence: !input right_up_release
+              - conditions: "{{ scene_key == '006' and scene_value == 0 }}"
+                sequence: !input right_down_single
+              - conditions: "{{ scene_key == '006' and scene_value == 3 }}"
+                sequence: !input right_down_double
+              - conditions: "{{ scene_key == '006' and scene_value == 2 }}"
+                sequence: !input right_down_hold
+              - conditions: "{{ scene_key == '006' and scene_value == 1 }}"
+                sequence: !input right_down_release
