@@ -1,0 +1,194 @@
+blueprint:
+  name: Shelly Input Toggle or Custom Actions with Optional Second Input v1.1
+  description: >
+    Trigger a Shelly (or any binary sensor) input to either toggle a light
+    or execute custom actions. Supports an optional second input (like a 2-way switch).
+    Choose between:
+    - Lamp mode (select a light entity) or Custom mode (define ON→OFF and OFF→ON actions).
+    - Toggle switch (every state change) or Momentary switch (only on → on).
+    Optionally trigger a confirm switch after output is toggled (Shelly resets it automatically).
+  domain: automation
+  input:
+    primary_input:
+      name: Primary input
+      selector:
+        entity:
+          domain: binary_sensor
+
+    secondary_input:
+      name: Secondary input (optional)
+      description: Select a second binary_sensor for 2-way switching.  
+        If not needed, leave default.
+      default: input_boolean.dummy
+      selector:
+        entity:
+          domain: binary_sensor
+
+    mode:
+      name: Mode
+      default: lamp
+      selector:
+        select:
+          options:
+            - lamp
+            - custom
+
+    switch_type:
+      name: Switch type
+      description: Choose how the input is interpreted
+      default: toggle
+      selector:
+        select:
+          options:
+            - toggle
+            - momentary
+
+    lamp_entity:
+      name: Light (lamp mode)
+      default: null
+      selector:
+        entity:
+          domain: light
+
+    on_to_off_action:
+      name: ON → OFF action (custom mode)
+      default: []
+      selector:
+        action: {}
+
+    off_to_on_action:
+      name: OFF → ON action (custom mode)
+      default: []
+      selector:
+        action: {}
+
+    confirm_switch:
+      name: Confirm switch (optional)
+      description: A switch entity to turn on after the output toggles (Shelly will turn it off)
+      default: null
+      selector:
+        entity:
+          domain: switch
+
+trigger:
+  - platform: state
+    entity_id: !input primary_input
+  - platform: state
+    entity_id: !input secondary_input
+
+variables:
+  mode_selected: !input mode
+  switch_type_selected: !input switch_type
+  lamp_entity_var: !input lamp_entity
+  primary_input_var: !input primary_input
+  secondary_input_var: !input secondary_input
+  confirm_switch_var: !input confirm_switch
+
+action:
+  - choose:
+      # Lamp mode
+      - conditions:
+          - condition: template
+            value_template: "{{ mode_selected == 'lamp' }}"
+        sequence:
+          - choose:
+              # Primary input triggered
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ trigger.entity_id == primary_input_var and
+                         (switch_type_selected == 'toggle' or
+                          (switch_type_selected == 'momentary' and trigger.to_state.state == 'on')) }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lamp_entity_var is not none }}"
+                        sequence:
+                          - service: light.toggle
+                            target:
+                              entity_id: "{{ lamp_entity_var }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ confirm_switch_var is not none }}"
+                        sequence:
+                          - service: switch.turn_on
+                            target:
+                              entity_id: "{{ confirm_switch_var }}"
+              # Secondary input triggered
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ secondary_input_var != 'input_boolean.dummy' and
+                         trigger.entity_id == secondary_input_var and
+                         (switch_type_selected == 'toggle' or
+                          (switch_type_selected == 'momentary' and trigger.to_state.state == 'on')) }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lamp_entity_var is not none }}"
+                        sequence:
+                          - service: light.toggle
+                            target:
+                              entity_id: "{{ lamp_entity_var }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ confirm_switch_var is not none }}"
+                        sequence:
+                          - service: switch.turn_on
+                            target:
+                              entity_id: "{{ confirm_switch_var }}"
+
+      # Custom mode
+      - conditions:
+          - condition: template
+            value_template: "{{ mode_selected == 'custom' }}"
+        sequence:
+          # Primary input actions
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ trigger.entity_id == primary_input_var and
+                         trigger.to_state.state == 'on' and
+                         (switch_type_selected == 'toggle' or switch_type_selected == 'momentary') }}
+                sequence: !input off_to_on_action
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ trigger.entity_id == primary_input_var and
+                         trigger.to_state.state == 'off' and
+                         switch_type_selected == 'toggle' }}
+                sequence: !input on_to_off_action
+          # Secondary input actions
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ secondary_input_var != 'input_boolean.dummy' and
+                         trigger.entity_id == secondary_input_var and
+                         trigger.to_state.state == 'on' and
+                         (switch_type_selected == 'toggle' or switch_type_selected == 'momentary') }}
+                sequence: !input off_to_on_action
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ secondary_input_var != 'input_boolean.dummy' and
+                         trigger.entity_id == secondary_input_var and
+                         trigger.to_state.state == 'off' and
+                         switch_type_selected == 'toggle' }}
+                sequence: !input on_to_off_action
+          # Optional confirm switch
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ confirm_switch_var is not none }}"
+                sequence:
+                  - service: switch.turn_on
+                    target:
+                      entity_id: "{{ confirm_switch_var }}"
+
+mode: single
