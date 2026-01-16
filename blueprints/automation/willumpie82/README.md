@@ -1,11 +1,14 @@
 # 🔌 Shelly Detached Input – Home Assistant Blueprints
 
-This repository contains Home Assistant blueprints for Shelly devices configured in **detached input mode**.  
-The blueprints allow you to use Shelly inputs as **switches or buttons**, while keeping full control over
-lights, scenes, or custom automations inside Home Assistant.
+This repository contains Home Assistant blueprints for **Shelly Gen3 & Gen4 devices**
+configured in **detached input mode**.
 
-The setup is designed to be **flexible, robust, and future-proof**, with optional local fallback behavior
-running directly on the Shelly device (Gen3 & Gen4).
+The goal is to use **physical wall switches or buttons** to control **smart lights or automations**
+without physically switching mains power to the lights.
+
+An optional **local fallback mechanism** runs directly on the Shelly device and provides
+predictable behavior and feedback even during Home Assistant restarts — significantly
+improving the real-world usability (WAF factor) of smart lighting setups.
 
 ---
 
@@ -14,7 +17,47 @@ running directly on the Shelly device (Gen3 & Gen4).
 - 🧩 Home Assistant automation blueprint  
   **Shelly Detached Input – Switch or Button Mode (v1.3)**
 - 🛡️ Optional Shelly fallback script (Gen3 & Gen4)
-- 📖 Clear documentation for Home Assistant and Shelly configuration
+- 📖 Documentation for Home Assistant and Shelly configuration
+
+---
+
+## 🧱 Typical Use Case
+
+Do you want to use a **physical wall switch** to control your **smart lights**
+*without cutting power to the bulbs*?
+
+This blueprint is designed exactly for that scenario.
+
+### Example setup
+- 💡 Smart lights (Hue, Zigbee, Wi-Fi, etc.)
+- 🔌 **Shelly Gen3 device** configured in **detached mode**
+- 🔘 A classic wall switch **or**
+- 🖲️ A Shelly Wall Switch (2)
+
+In this setup:
+- The physical switch does **not** control mains power directly
+- The Shelly input only reports user interaction
+- Home Assistant handles the smart logic
+- **Smart lights are not physically switched off by the wall switch**
+- **Basic interaction remains functional even if Home Assistant is temporarily unavailable,
+  thanks to the local Shelly fallback**
+
+This results in:
+- Predictable behavior
+- A familiar “it just works” feeling
+- A much higher WAF (Wife / Partner Acceptance Factor)
+
+---
+
+### ⚠️ Electrical Safety
+
+Shelly devices operate on **mains voltage**.
+
+Always ensure:
+- Correct wiring according to Shelly documentation
+- Compliance with local electrical regulations
+
+If you are unsure, **consult a qualified professional installer**.
 
 ---
 
@@ -26,7 +69,7 @@ running directly on the Shelly device (Gen3 & Gen4).
   - Triggered on OFF → ON and ON → OFF transitions
 - **Button mode**
   - Uses a Shelly `event` entity
-  - Supports:
+  - Supported:
     - `single_push`
     - `double_push`
     - `long_push`
@@ -40,52 +83,44 @@ running directly on the Shelly device (Gen3 & Gen4).
 - **Custom mode**
   - Define your own action sequences per switch state or button event
 
-### 🛡️ Optional confirm feedback
-- Trigger a virtual confirm switch on the Shelly
-- Works with both switch and button mode
-- Fully compatible with the fallback script
-
 ---
 
 ## 📥 Importing the Blueprint
-
-Use Home Assistant’s blueprint import feature:
 
 1. Go to  
    **Settings → Automations & Scenes → Blueprints**
 2. Click **Import Blueprint**
 3. Paste this URL:
+
 https://raw.githubusercontent.com/willumpie82/homeassistant-blueprints/main/blueprints/automation/willumpie82/Shelly-detached-input.yaml
 
 ---
 
-## ⚠️ Important: Required Inputs (Home Assistant Limitation)
+## ⚠️ Required Inputs (Home Assistant Limitation)
 
 Home Assistant requires **all trigger entities to be valid at all times**.
 
 This means:
-- When using **Switch mode**, the switch input **must be selected**
-- When using **Button mode**, the button event entity **must be selected**
-- Some inputs may still require a value, even if they are ignored
+- Switch mode → switch input is required
+- Button mode → button event entity is required
+- Some inputs may still need a value, even if they are ignored
 
 👉 If an input is not relevant for your selected mode, simply select **any entity**.  
 It will **not** be used by the automation.
 
-This behavior is a Home Assistant limitation, **not a blueprint bug**.
+This is a Home Assistant limitation, **not a blueprint bug**.
 
 ---
 
 ## 🔧 Shelly Configuration
 
-### 1️⃣ Configure the Shelly input
-- Set the input to **Detached mode**
+### 1️⃣ Detached input
+- Configure the Shelly input as **Detached**
 - Disable any internal switching behavior
-
-This ensures Home Assistant has full control over the logic.
 
 ---
 
-### 2️⃣ Create the Confirm Switch (Gen3 & Gen4)
+### 2️⃣ Confirm switch (Gen3 & Gen4)
 
 The confirm switch is a **virtual component**, not a physical output.
 
@@ -98,55 +133,29 @@ The confirm switch is a **virtual component**, not a physical output.
 5. Configure:
    - **Name:** `confirm`
    - **View:** `Toggle`
-   - Leave all other options at their default values
-6. Save the component
+   - Leave all other options at default
+6. Save
 
-The confirm component will now:
+The confirm component will:
 - Appear in Home Assistant as a **`switch` entity**
 - Be visible under the **Control** section of the Shelly device
 - Be selectable as the **Confirm switch** in the blueprint
 
 ---
 
-### 3️⃣ Shelly Fallback Script (Optional, Gen3 & Gen4)
+### 3️⃣ Shelly fallback script (optional)
 
-To improve reliability, especially during Home Assistant restarts or network issues,
-you can run a fallback script directly on the Shelly.
+The fallback script provides **local confirmation and predictable behavior**
+even when Home Assistant is restarting or temporarily unavailable.
 
-**What the script does:**
-- Listens for physical input activity
+**What it does:**
+- Listens for physical input events
 - Generates a short confirmation pulse
-- Resets itself automatically
-- Works independently of Home Assistant
+- Resets automatically
+- Works for both switch and button mode
 
-The same script works for:
-- Switch mode
-- Button mode
-
-📄 Script file:
+📄 Script location:
 shelly/confirm_fallback_gen3_gen4.js
-
-**How to add the script:**
-
-1. Open the Shelly web interface
-2. Go to **Scripts**
-3. Add a new script
-4. Paste the contents of `confirm_fallback_gen3_gen4.js`
-5. Enable the script
-
-No further configuration is required.
-
----
-
-## 🧠 Why use a fallback script?
-
-While Home Assistant is very reliable, a local fallback provides:
-
-- Immediate feedback on button presses
-- Consistent behavior during HA restarts
-- A better “physical switch” feel
-
-Home Assistant and the Shelly script work **together**, not against each other.
 
 ---
 
@@ -167,16 +176,14 @@ Current version: **v1.3**
 Planned for **v1.4**:
 - Scene controller support
 - Advanced dimming behavior
-- Preset brightness options
-- More flexible per-event custom actions
+- Preset brightness levels
+- Per-event action customization
 
 ---
 
-## 🤝 Feedback & Contributions
+## 🤝 Feedback
 
-Feedback, bug reports, and feature suggestions are welcome.
+Feedback, bug reports, and feature ideas are welcome.
 
-If you’re using this blueprint in an interesting way, feel free to share it
-on the Home Assistant Community forum!
-
----
+If you’re using this blueprint in an interesting way,
+feel free to share it on the Home Assistant Community forum!
