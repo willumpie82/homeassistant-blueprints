@@ -1,194 +1,340 @@
 blueprint:
-  name: Shelly Input Toggle or Custom Actions with Optional Second Input v1.1
-  description: >
-    Trigger a Shelly (or any binary sensor) input to either toggle a light
-    or execute custom actions. Supports an optional second input (like a 2-way switch).
-    Choose between:
-    - Lamp mode (select a light entity) or Custom mode (define ON→OFF and OFF→ON actions).
-    - Toggle switch (every state change) or Momentary switch (only on → on).
-    Optionally trigger a confirm switch after output is toggled (Shelly resets it automatically).
+  name: Shelly Detached Input - Switch or Button Mode v1.3
   domain: automation
+  description: "# 🔌 Shelly Detached Input – Switch or Button Mode\n\
+  **Version: 1.3**\n\n\
+  ✨ Control lights or run custom actions using a Shelly device configured in **detached mode**.\n\
+  This blueprint combines **classic wall switches** and **modern button events** into one flexible automation.\n\n\
+  ---\n\n\
+  ## 🔧 Input Modes\n\n\
+  🔘 **Switch mode**\n\ 
+  - Uses a `binary_sensor`\n\
+  - 🔁 Toggles on every OFF ↔ ON state change\n\n\
+  🖲️ **Button mode**\n\
+  - Uses a Shelly `event` entity\n\
+  - 🎯 Supported events:\n\
+    - 🟢 `single_push`\n\
+    - 🔵 `double_push`\n\
+    - 🟣 `long_push`\n\n\
+  ---\n\n\
+  ## 💡 Action Modes\n\n\
+  💡 **Lamp mode**\n\
+  - 🔘 Switch mode → toggle the lamp\n\
+  - 🖲️ Button mode:\n\
+    - 🟢 single press → toggle\n\
+    - 🔵 double press → 100% brightness\n\n\
+  🧩 **Custom mode**\n\
+  - Define your own automations per switch state or button press\n\
+  - Combine with scenes, scripts, or advanced logic\n\n\
+  ---\n\n\
+  ## ⚠️ Important – Required Inputs\n\n\
+  🚧 Home Assistant requires **all trigger entities to be valid at all times**.\n\n\
+  This means:\n\
+  - 🔘 **Switch mode** → switch input is **required**\n\
+  - 🖲️ **Button mode** → button event entity is **required**\n\
+  - ℹ️ Other inputs may still need a value, even if they are ignored\n\n\
+  👉 **If an input is not relevant for your selected mode, simply select any entity.**\n\
+  🚫 It will **NOT** be used.\n\n\
+  🧠 This is a Home Assistant limitation — **not** a blueprint error.\n\n\
+  ---\n\n\
+  <details>\n\
+  <summary><b>🧠 How this blueprint works</b></summary>\n\n\
+  - 👂 Listens for either:\n\
+    - 🔘 state changes (switch mode)\n\
+    - 🖲️ button events (button mode)\n\
+  - 🧭 Routes the trigger based on your selected mode\n\
+  - ⚙️ Executes only the relevant actions\n\
+  - ✅ Optionally triggers a Shelly confirm output for feedback\n\n\
+  </details>\n\n\
+  <details>\n\
+  <summary><b>📦 Supported Shelly devices</b></summary>\n\n\
+  - 🧱 Shelly Gen3\n\
+  - 🧱 Shelly Gen4\n\
+  - 🔧 Devices configured in **detached input mode**\n\n\
+  </details>\n"
+
   input:
-    primary_input:
-      name: Primary input
-      selector:
-        entity:
-          domain: binary_sensor
+    ###########################################################################
+    # GENERAL
+    ###########################################################################
+    general:
+      name: General configuration
+      collapsed: false
+      input:
+        input_mode:
+          name: Input mode
+          description: >
+            Select how the Shelly input is configured.
+            - switch: detached switch using a binary_sensor
+            - button: event-based button input
+          default: switch
+          selector:
+            select:
+              options:
+                - switch
+                - button
 
-    secondary_input:
-      name: Secondary input (optional)
-      description: Select a second binary_sensor for 2-way switching.  
-        If not needed, leave default.
-      default: input_boolean.dummy
-      selector:
-        entity:
-          domain: binary_sensor
+        action_mode:
+          name: Action mode
+          description: >
+            Choose whether this automation controls a lamp directly
+            or runs custom actions.
+          default: lamp
+          selector:
+            select:
+              options:
+                - lamp
+                - custom
 
-    mode:
-      name: Mode
-      default: lamp
-      selector:
-        select:
-          options:
-            - lamp
-            - custom
+    ###########################################################################
+    # SWITCH MODE CONFIGURATION
+    ###########################################################################
+    switch_config:
+      name: Switch configuration
+      collapsed: true
+      input:
+        primary_input:
+          name: "[Switch mode] Primary switch input (required)"
+          description: >
+            REQUIRED when Input mode is set to 'switch'.
 
-    switch_type:
-      name: Switch type
-      description: Choose how the input is interpreted
-      default: toggle
-      selector:
-        select:
-          options:
-            - toggle
-            - momentary
+            If you are using Button mode, select any binary_sensor here.
+            This input will be ignored.
+          selector:
+            entity:
+              domain: binary_sensor
 
-    lamp_entity:
-      name: Light (lamp mode)
-      default: null
-      selector:
-        entity:
-          domain: light
+        custom_on:
+          name: "[Switch][Custom] ON action"
+          description: >
+            Executed when the switch goes from OFF to ON
+            and Action mode is set to 'custom'.
+          default: []
+          selector:
+            action: {}
 
-    on_to_off_action:
-      name: ON → OFF action (custom mode)
-      default: []
-      selector:
-        action: {}
+        custom_off:
+          name: "[Switch][Custom] OFF action"
+          description: >
+            Executed when the switch goes from ON to OFF
+            and Action mode is set to 'custom'.
+          default: []
+          selector:
+            action: {}
 
-    off_to_on_action:
-      name: OFF → ON action (custom mode)
-      default: []
-      selector:
-        action: {}
+    ###########################################################################
+    # BUTTON MODE CONFIGURATION
+    ###########################################################################
+    button_config:
+      name: Button configuration
+      collapsed: true
+      input:
+        button_event:
+          name: "[Button mode] Button event entity (required)"
+          description: >
+            REQUIRED when Input mode is set to 'button'.
 
-    confirm_switch:
-      name: Confirm switch (optional)
-      description: A switch entity to turn on after the output toggles (Shelly will turn it off)
-      default: null
-      selector:
-        entity:
-          domain: switch
+            If you are using Switch mode, select any event entity here.
+            This input will be ignored.
+          selector:
+            entity:
+              domain: event
 
+        custom_single:
+          name: "[Button][Custom] Single press action"
+          default: []
+          selector:
+            action: {}
+
+        custom_double:
+          name: "[Button][Custom] Double press action"
+          default: []
+          selector:
+            action: {}
+
+        custom_long:
+          name: "[Button][Custom] Long press action"
+          default: []
+          selector:
+            action: {}
+
+    ###########################################################################
+    # LAMP CONFIGURATION
+    ###########################################################################
+    lamp_config:
+      name: Lamp configuration
+      collapsed: true
+      input:
+        lamp_entity:
+          name: Lamp entity
+          description: >
+            Used when Action mode is set to 'lamp'.
+
+            Switch mode:
+            - toggle on every state change
+
+            Button mode:
+            - single press → toggle
+            - double press → 100% brightness
+          selector:
+            entity:
+              domain: light
+
+    ###########################################################################
+    # OPTIONAL CONFIRM SWITCH
+    ###########################################################################
+    confirm_config:
+      name: Optional confirm switch
+      collapsed: true
+      input:
+        confirm_switch:
+          name: Confirm switch
+          description: >
+            Optional switch that will be turned on after an action.
+            Typically used with Shelly confirm outputs.
+            The Shelly will reset this switch automatically.
+          selector:
+            entity:
+              domain: switch
+
+###############################################################################
+# TRIGGERS
+###############################################################################
 trigger:
   - platform: state
     entity_id: !input primary_input
+    from: "off"
+    to: "on"
+    id: switch_on
+
   - platform: state
-    entity_id: !input secondary_input
+    entity_id: !input primary_input
+    from: "on"
+    to: "off"
+    id: switch_off
 
-variables:
-  mode_selected: !input mode
-  switch_type_selected: !input switch_type
-  lamp_entity_var: !input lamp_entity
-  primary_input_var: !input primary_input
-  secondary_input_var: !input secondary_input
-  confirm_switch_var: !input confirm_switch
+  - platform: event
+    event_type: shelly_button_event
+    id: button_event
 
+###############################################################################
+# CONDITIONS
+###############################################################################
+condition:
+  - condition: template
+    value_template: >
+      {{ trigger.platform != 'state'
+         or trigger.from_state.state in ['on','off'] }}
+
+###############################################################################
+# ACTIONS
+###############################################################################
 action:
   - choose:
-      # Lamp mode
+      #########################################################################
+      # SWITCH MODE
+      #########################################################################
       - conditions:
           - condition: template
-            value_template: "{{ mode_selected == 'lamp' }}"
+            value_template: "{{ input_mode == 'switch' }}"
         sequence:
           - choose:
-              # Primary input triggered
+              # OFF → ON
               - conditions:
-                  - condition: template
-                    value_template: >
-                      {{ trigger.entity_id == primary_input_var and
-                         (switch_type_selected == 'toggle' or
-                          (switch_type_selected == 'momentary' and trigger.to_state.state == 'on')) }}
+                  - condition: trigger
+                    id: switch_on
                 sequence:
                   - choose:
                       - conditions:
                           - condition: template
-                            value_template: "{{ lamp_entity_var is not none }}"
+                            value_template: "{{ action_mode == 'lamp' }}"
                         sequence:
                           - service: light.toggle
                             target:
-                              entity_id: "{{ lamp_entity_var }}"
-                  - choose:
+                              entity_id: !input lamp_entity
                       - conditions:
                           - condition: template
-                            value_template: "{{ confirm_switch_var is not none }}"
-                        sequence:
-                          - service: switch.turn_on
-                            target:
-                              entity_id: "{{ confirm_switch_var }}"
-              # Secondary input triggered
-              - conditions:
-                  - condition: template
-                    value_template: >
-                      {{ secondary_input_var != 'input_boolean.dummy' and
-                         trigger.entity_id == secondary_input_var and
-                         (switch_type_selected == 'toggle' or
-                          (switch_type_selected == 'momentary' and trigger.to_state.state == 'on')) }}
-                sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ lamp_entity_var is not none }}"
-                        sequence:
-                          - service: light.toggle
-                            target:
-                              entity_id: "{{ lamp_entity_var }}"
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ confirm_switch_var is not none }}"
-                        sequence:
-                          - service: switch.turn_on
-                            target:
-                              entity_id: "{{ confirm_switch_var }}"
+                            value_template: "{{ action_mode == 'custom' }}"
+                        sequence: !input custom_on
 
-      # Custom mode
+              # ON → OFF
+              - conditions:
+                  - condition: trigger
+                    id: switch_off
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ action_mode == 'custom' }}"
+                        sequence: !input custom_off
+
+      #########################################################################
+      # BUTTON MODE
+      #########################################################################
       - conditions:
           - condition: template
-            value_template: "{{ mode_selected == 'custom' }}"
+            value_template: "{{ input_mode == 'button' }}"
         sequence:
-          # Primary input actions
           - choose:
+              # SINGLE PUSH
               - conditions:
                   - condition: template
-                    value_template: >
-                      {{ trigger.entity_id == primary_input_var and
-                         trigger.to_state.state == 'on' and
-                         (switch_type_selected == 'toggle' or switch_type_selected == 'momentary') }}
-                sequence: !input off_to_on_action
-              - conditions:
-                  - condition: template
-                    value_template: >
-                      {{ trigger.entity_id == primary_input_var and
-                         trigger.to_state.state == 'off' and
-                         switch_type_selected == 'toggle' }}
-                sequence: !input on_to_off_action
-          # Secondary input actions
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: >
-                      {{ secondary_input_var != 'input_boolean.dummy' and
-                         trigger.entity_id == secondary_input_var and
-                         trigger.to_state.state == 'on' and
-                         (switch_type_selected == 'toggle' or switch_type_selected == 'momentary') }}
-                sequence: !input off_to_on_action
-              - conditions:
-                  - condition: template
-                    value_template: >
-                      {{ secondary_input_var != 'input_boolean.dummy' and
-                         trigger.entity_id == secondary_input_var and
-                         trigger.to_state.state == 'off' and
-                         switch_type_selected == 'toggle' }}
-                sequence: !input on_to_off_action
-          # Optional confirm switch
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ confirm_switch_var is not none }}"
+                    value_template: "{{ trigger.event.data.event_type == 'single_push' }}"
                 sequence:
-                  - service: switch.turn_on
-                    target:
-                      entity_id: "{{ confirm_switch_var }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ action_mode == 'lamp' }}"
+                        sequence:
+                          - service: light.toggle
+                            target:
+                              entity_id: !input lamp_entity
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ action_mode == 'custom' }}"
+                        sequence: !input custom_single
+
+              # DOUBLE PUSH
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.event_type == 'double_push' }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ action_mode == 'lamp' }}"
+                        sequence:
+                          - service: light.turn_on
+                            data:
+                              brightness_pct: 100
+                            target:
+                              entity_id: !input lamp_entity
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ action_mode == 'custom' }}"
+                        sequence: !input custom_double
+
+              # LONG PUSH
+              - conditions:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.event_type == 'long_push' }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ action_mode == 'custom' }}"
+                        sequence: !input custom_long
+
+  ###########################################################################
+  # OPTIONAL CONFIRM SWITCH
+  ###########################################################################
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ confirm_switch is not none }}"
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input confirm_switch
 
 mode: single
