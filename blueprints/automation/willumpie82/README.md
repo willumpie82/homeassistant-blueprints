@@ -77,6 +77,6 @@ Example payload:
 ```json
 {
   "device_id": "YOUR_SHELLY_DEVICE_ID",
-  "event_type": "double_push",
+  "event_type": "single_push",
   "subtype": "button1"
 }
