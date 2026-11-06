@@ -4,6 +4,12 @@ All notable changes to the blueprints in this repository will be documented in t
 
 ---
 
+## [Unreleased]
+### Added
+- **Panic Button - Actionable Alert** blueprint (`panic_button_actionable_alert.yaml`): button trigger, Companion app notify service, alert type (critical / time-sensitive / active / passive) and two configurable responses with their own actions.
+
+---
+
 ## [1.0.0] – 2025-10-02
 ### Added
 - Initial release of the **Z-Wave.me WALLC-S (4-button wall switch)** blueprint.
