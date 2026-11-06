@@ -43,7 +43,7 @@ blueprint:
       name: Notify service (entity)
       description: >
         Companion app notify service to send the alert to, for example
-        `notify.mobile_app_iphone_van_willem` (the `notify.` prefix is optional).
+        `notify.mobile_app_<device>` (the `notify.` prefix is optional).
       default: ""
       selector:
         text: {}
