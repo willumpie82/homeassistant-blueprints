@@ -39,11 +39,22 @@ blueprint:
       default: "toggle,on,off"
       selector:
         text: {}
-    notify_entity:
-      name: Notify service (entity)
+    notify_device:
+      name: Phone (Companion app)
       description: >
-        Companion app notify service to send the alert to, for example
-        `notify.mobile_app_<device>` (the `notify.` prefix is optional).
+        Pick the phone to send the alert to. The notify service is derived from the device name
+        (`notify.mobile_app_<device>`). If nothing is found, use the service name field below.
+      default: ""
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+    notify_entity:
+      name: Notify service (optional override)
+      description: >
+        Notify service name, for example `notify.mobile_app_<device>` (the `notify.` prefix is
+        optional). Used instead of the phone above when filled in, handy for other notify
+        services.
       default: ""
       selector:
         text: {}
@@ -130,10 +141,16 @@ conditions:
 variables:
   button_commands: !input button_commands
   notify_entity: !input notify_entity
+  notify_device: !input notify_device
   alert_type: !input notify_alert_type
   response_1_name: !input response_1_name
   response_2_name: !input response_2_name
-  notify_target: "{{ 'notify.' ~ (notify_entity | replace('notify.', '')) }}"
+  notify_target: >-
+    {% if notify_entity | trim != '' %}
+      {{ 'notify.' ~ (notify_entity | trim | replace('notify.', '')) }}
+    {% elif notify_device %}
+      {{ 'notify.mobile_app_' ~ slugify(device_attr(notify_device, 'name')) }}
+    {% endif %}
   r1_id: "PANIC_R1_{{ context.id }}"
   r2_id: "PANIC_R2_{{ context.id }}"
   panic_trigger: "{{ trigger }}"
