@@ -1,57 +1,37 @@
 blueprint:
-  name: Panic Button - Actionable Alert v1.0.0
+  name: Panic Button - Zigbee2MQTT v1.0.0
   domain: automation
   description: |
-    # 🚨 Panic Button – Actionable Alert
+    # 🚨 Panic Button – Zigbee2MQTT
     **Version: 1.0.0**
 
-    Made for the **Sonoff SNZB-01P** Zigbee button (Zigbee2MQTT), e.g. inside a
-    3D-printed emergency-stop style housing. Any other button works too, because the
-    button is a free trigger input.
+    Made for the **Sonoff SNZB-01P** (Zigbee2MQTT), e.g. in a 3D-printed
+    emergency-stop style housing. Works with any Z2M button that reports the
+    actions `single`, `double` and `long`.
 
-    Pressing the button sends an **actionable notification** to the
-    Home Assistant Companion app (iOS / Android) with up to two response buttons.
-    Tapping a response runs the actions you configured for it, e.g. speak
-    "OK" / "I'm coming" on a speaker, show a message on a wall display, flash a light.
-
-    ---
-    ## How it works
-    1. Any trigger you configure as **Button** fires the alert.
-    2. A notification is sent with the chosen alert type (e.g. *critical*,
-       which also rings through Do Not Disturb / silent mode on iOS).
-    3. The automation waits for a tap on **Response 1** or **Response 2** and runs the
-       matching actions. The variable `response_name` is available in those actions.
+    Sends an **actionable notification** to the Home Assistant Companion app
+    (iOS / Android) with up to two response buttons. Tapping a response runs the
+    actions you configured for it, e.g. speak "OK" / "I'm coming" on a speaker,
+    show a message on a wall display or flash a light. The variable
+    `response_name` is available in those actions.
 
     ## Notes
-    - Response tapping only works with the Companion app notify service
+    - Responses only work with the Companion app notify service
       (`notify.mobile_app_<device>`).
     - The automation waits for a response until the timeout expires.
       A Home Assistant restart cancels a pending wait.
     - Critical alerts on iOS must be enabled in the Companion app notification settings.
-  source_url: https://github.com/willumpie82/homeassistant-blueprints/blob/main/blueprints/automation/willumpie82/panic_button_actionable_alert.yaml
+
+  source_url: https://github.com/willumpie82/homeassistant-blueprints/blob/main/blueprints/automation/willumpie82/panic_button_z2m.yaml
   input:
-    button:
-      name: Button (Sonoff SNZB-01P)
+    button_topic:
+      name: Button topic (Zigbee2MQTT)
       description: >
-        Triggers that fire the alert. The default listens to the three press types
-        (single, double, long) of a Sonoff SNZB-01P in Zigbee2MQTT on the topic
-        `zigbee2mqtt/Sonoff-SNZB-01P`. **Change the topic to the friendly name of your
-        button.** Other buttons: use an event or device trigger instead.
-      default:
-        - trigger: mqtt
-          topic: zigbee2mqtt/Sonoff-SNZB-01P
-          value_template: "{{ value_json.action }}"
-          payload: single
-        - trigger: mqtt
-          topic: zigbee2mqtt/Sonoff-SNZB-01P
-          value_template: "{{ value_json.action }}"
-          payload: double
-        - trigger: mqtt
-          topic: zigbee2mqtt/Sonoff-SNZB-01P
-          value_template: "{{ value_json.action }}"
-          payload: long
+        MQTT topic of your button: `zigbee2mqtt/<friendly name>`, for example
+        `zigbee2mqtt/Sonoff-SNZB-01P`. A single, double or long press fires the alert.
+      default: zigbee2mqtt/Sonoff-SNZB-01P
       selector:
-        trigger: {}
+        text: {}
     notify_entity:
       name: Notify service (entity)
       description: >
@@ -127,7 +107,20 @@ mode: parallel
 max: 10
 max_exceeded: silent
 
-triggers: !input button
+triggers:
+  - trigger: mqtt
+    topic: !input button_topic
+    value_template: "{{ value_json.action }}"
+    payload: single
+  - trigger: mqtt
+    topic: !input button_topic
+    value_template: "{{ value_json.action }}"
+    payload: double
+  - trigger: mqtt
+    topic: !input button_topic
+    value_template: "{{ value_json.action }}"
+    payload: long
+
 
 variables:
   notify_entity: !input notify_entity

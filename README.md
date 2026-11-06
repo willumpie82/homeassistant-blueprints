@@ -27,19 +27,28 @@ Each button pair (left = buttons 1+2, right = buttons 3+4) can be configured in 
 
 ### 🚨 Panic Button – Actionable Alert
 
-Turns any (Zigbee) button into a panic button. A press sends an **actionable notification**
+Turns a (Zigbee) button into a panic button. A press sends an **actionable notification**
 (optionally a *critical* alert that rings through silent mode) to the Home Assistant Companion app,
 with two response buttons. Each response runs your own actions, e.g. speak "OK" / "I'm coming"
 on a speaker or show it on a wall display.
 
-Inputs: button trigger, notify service, alert type, response 1/2 name and actions (plus title, message and timeout).
+Inputs: button, notify service, alert type, response 1/2 name and actions (plus title, message and timeout).
 
-**Hardware:** Sonoff SNZB-01P (Zigbee2MQTT). The blueprint is prefilled for its `single`, `double` and `long` actions; only the topic needs to match your button's friendly name.
+**Hardware:** Sonoff SNZB-01P. One blueprint per integration:
+
+| Integration | Blueprint | Import |
+|---|---|---|
+| Zigbee2MQTT | `panic_button_z2m.yaml` – set the MQTT topic of your button | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fwillumpie82%2Fhomeassistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fwillumpie82%2Fpanic_button_z2m.yaml) |
+| ZHA (untested) | `panic_button_zha.yaml` – pick the ZHA device, optionally the commands | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fwillumpie82%2Fhomeassistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fwillumpie82%2Fpanic_button_zha.yaml) |
+
+Import button not working? In Home Assistant go to **Settings → Automations & Scenes → Blueprints → Import Blueprint**
+and paste the URL:
+
+- `https://github.com/willumpie82/homeassistant-blueprints/blob/main/blueprints/automation/willumpie82/panic_button_z2m.yaml`
+- `https://github.com/willumpie82/homeassistant-blueprints/blob/main/blueprints/automation/willumpie82/panic_button_zha.yaml`
 
 **3D-printed housing:** emergency-stop style button with a limited stroke so the cap cannot crush the SNZB-01P.
 MakerWorld: _link follows once the design is published_
-
-[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fwillumpie82%2Fhomeassistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fwillumpie82%2Fpanic_button_actionable_alert.yaml)
 
 ---
 

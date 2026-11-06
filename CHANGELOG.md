@@ -6,7 +6,7 @@ All notable changes to the blueprints in this repository will be documented in t
 
 ## [Unreleased]
 ### Added
-- **Panic Button - Actionable Alert** blueprint (`panic_button_actionable_alert.yaml`): button trigger, Companion app notify service, alert type (critical / time-sensitive / active / passive) and two configurable responses with their own actions.
+- **Panic Button** blueprints with actionable Companion app notification, alert type (critical / time-sensitive / active / passive) and two configurable responses with their own actions: `panic_button_z2m.yaml` (Zigbee2MQTT, for the Sonoff SNZB-01P) and `panic_button_zha.yaml` (ZHA, untested).
 
 ---
 

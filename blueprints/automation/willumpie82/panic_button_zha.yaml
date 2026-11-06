@@ -1,0 +1,197 @@
+blueprint:
+  name: Panic Button - ZHA v1.0.0
+  domain: automation
+  description: |
+    # 🚨 Panic Button – ZHA
+    **Version: 1.0.0 (untested with real hardware)**
+
+    For a Zigbee button in **ZHA** (e.g. Sonoff SNZB-01P). Any ZHA event of the
+    selected device fires the alert, optionally limited to specific commands.
+
+    Sends an **actionable notification** to the Home Assistant Companion app
+    (iOS / Android) with up to two response buttons. Tapping a response runs the
+    actions you configured for it, e.g. speak "OK" / "I'm coming" on a speaker,
+    show a message on a wall display or flash a light. The variable
+    `response_name` is available in those actions.
+
+    ## Notes
+    - Responses only work with the Companion app notify service
+      (`notify.mobile_app_<device>`).
+    - The automation waits for a response until the timeout expires.
+      A Home Assistant restart cancels a pending wait.
+    - Critical alerts on iOS must be enabled in the Companion app notification settings.
+
+  source_url: https://github.com/willumpie82/homeassistant-blueprints/blob/main/blueprints/automation/willumpie82/panic_button_zha.yaml
+  input:
+    button:
+      name: Button (ZHA device)
+      description: The ZHA button that triggers the alert.
+      selector:
+        device:
+          integration: zha
+    button_commands:
+      name: Commands (optional)
+      description: >
+        Comma separated ZHA commands that fire the alert, for example `toggle,on,off`.
+        Leave empty to fire on every event of the button. The commands differ per
+        button; check the events of the device in the ZHA device page.
+      default: ""
+      selector:
+        text: {}
+    notify_entity:
+      name: Notify service (entity)
+      description: >
+        Companion app notify service to send the alert to, for example
+        `notify.mobile_app_iphone_van_willem` (the `notify.` prefix is optional).
+      default: ""
+      selector:
+        text: {}
+    notify_alert_type:
+      name: Notify alert type
+      description: >
+        *critical* = rings through silent mode / Do Not Disturb (iOS critical alert,
+        Android alarm channel). *time-sensitive*, *active* and *passive* are the other iOS interruption levels.
+      default: critical
+      selector:
+        select:
+          options:
+            - label: Critical
+              value: critical
+            - label: Time sensitive
+              value: time-sensitive
+            - label: Active (normal)
+              value: active
+            - label: Passive (silent)
+              value: passive
+    notify_title:
+      name: Notification title
+      default: "PANIC BUTTON"
+      selector:
+        text: {}
+    notify_message:
+      name: Notification message
+      description: Templates are allowed.
+      default: "The panic button was pressed at {{ now().strftime('%H:%M') }}."
+      selector:
+        text:
+          multiline: true
+    response_timeout:
+      name: Response timeout
+      description: How long to wait for a tap on one of the response buttons.
+      default:
+        hours: 1
+        minutes: 0
+        seconds: 0
+      selector:
+        duration: {}
+    response_1_name:
+      name: Response 1 name
+      description: Label of the first notification button.
+      default: "OK"
+      selector:
+        text: {}
+    response_1_actions:
+      name: Response 1 actions
+      description: Actions to run when response 1 is tapped.
+      default: []
+      selector:
+        action: {}
+    response_2_name:
+      name: Response 2 name
+      description: Label of the second notification button. Leave empty to disable.
+      default: "I'm coming"
+      selector:
+        text: {}
+    response_2_actions:
+      name: Response 2 actions
+      description: Actions to run when response 2 is tapped.
+      default: []
+      selector:
+        action: {}
+
+mode: parallel
+max: 10
+max_exceeded: silent
+
+triggers:
+  - trigger: event
+    event_type: zha_event
+    event_data:
+      device_id: !input button
+
+
+conditions:
+  - condition: template
+    value_template: >-
+      {% set cmds = (button_commands | default('')) | trim %}
+      {{ cmds == '' or trigger.event.data.command in (cmds.split(',') | map('trim') | list) }}
+
+variables:
+  button_commands: !input button_commands
+  notify_entity: !input notify_entity
+  alert_type: !input notify_alert_type
+  response_1_name: !input response_1_name
+  response_2_name: !input response_2_name
+  notify_target: "{{ 'notify.' ~ (notify_entity | replace('notify.', '')) }}"
+  r1_id: "PANIC_R1_{{ context.id }}"
+  r2_id: "PANIC_R2_{{ context.id }}"
+  panic_trigger: "{{ trigger }}"
+
+actions:
+  - alias: Send actionable alert
+    action: "{{ notify_target }}"
+    data:
+      title: !input notify_title
+      message: !input notify_message
+      data: >-
+        {% set push = {'interruption-level': alert_type} %}
+        {% if alert_type == 'critical' %}
+          {% set push = {'interruption-level': 'critical', 'sound': {'name': 'default', 'critical': 1, 'volume': 1.0}} %}
+        {% endif %}
+        {% set d = {'tag': 'panic_button', 'ttl': 0, 'priority': 'high', 'push': push} %}
+        {% if alert_type == 'critical' %}
+          {% set _ = d.update({'channel': 'alarm_stream'}) %}
+        {% endif %}
+        {% set buttons = [] %}
+        {% if response_1_name | trim != '' %}
+          {% set buttons = buttons + [{'action': r1_id, 'title': response_1_name}] %}
+        {% endif %}
+        {% if response_2_name | trim != '' %}
+          {% set buttons = buttons + [{'action': r2_id, 'title': response_2_name}] %}
+        {% endif %}
+        {% set _ = d.update({'actions': buttons}) %}
+        {{ d }}
+
+  - alias: Wait for a response
+    wait_for_trigger:
+      - trigger: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "{{ r1_id }}"
+        id: r1
+      - trigger: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "{{ r2_id }}"
+        id: r2
+    timeout: !input response_timeout
+    continue_on_timeout: false
+
+  - alias: Run the chosen response
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ wait.trigger is not none and wait.trigger.id == 'r1' }}"
+        sequence:
+          - variables:
+              response_name: "{{ response_1_name }}"
+          - alias: Response 1
+            sequence: !input response_1_actions
+      - conditions:
+          - condition: template
+            value_template: "{{ wait.trigger is not none and wait.trigger.id == 'r2' }}"
+        sequence:
+          - variables:
+              response_name: "{{ response_2_name }}"
+          - alias: Response 2
+            sequence: !input response_2_actions
