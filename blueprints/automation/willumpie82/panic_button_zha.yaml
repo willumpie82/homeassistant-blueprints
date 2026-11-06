@@ -1,12 +1,12 @@
 blueprint:
-  name: Panic Button - ZHA v1.0.0
+  name: Panic Button - ZHA v1.0.1
   domain: automation
   description: |
     # 🚨 Panic Button – ZHA
-    **Version: 1.0.0 (untested with real hardware)**
+    **Version: 1.0.1**
 
-    For a Zigbee button in **ZHA** (e.g. Sonoff SNZB-01P). Any ZHA event of the
-    selected device fires the alert, optionally limited to specific commands.
+    For a Zigbee button in **ZHA**, prefilled for the **Sonoff SNZB-01P**, which sends the
+    commands `toggle`, `on` and `off`. Every press of the selected device fires the alert.
 
     Sends an **actionable notification** to the Home Assistant Companion app
     (iOS / Android) with up to two response buttons. Tapping a response runs the
@@ -30,12 +30,13 @@ blueprint:
         device:
           integration: zha
     button_commands:
-      name: Commands (optional)
+      name: Commands
       description: >
-        Comma separated ZHA commands that fire the alert, for example `toggle,on,off`.
-        Leave empty to fire on every event of the button. The commands differ per
-        button; check the events of the device in the ZHA device page.
-      default: ""
+        Comma separated ZHA commands that fire the alert. The default `toggle,on,off` covers
+        every press of a Sonoff SNZB-01P (single, double and long). Leave empty to fire on every
+        event of the button. Other buttons send other commands: check the events of the device
+        on the ZHA device page.
+      default: "toggle,on,off"
       selector:
         text: {}
     notify_entity:

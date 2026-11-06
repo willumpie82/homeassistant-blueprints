@@ -39,7 +39,7 @@ Inputs: button, notify service, alert type, response 1/2 name and actions (plus 
 | Integration | Blueprint | Import |
 |---|---|---|
 | Zigbee2MQTT | `panic_button_z2m.yaml` – set the MQTT topic of your button | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fwillumpie82%2Fhomeassistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fwillumpie82%2Fpanic_button_z2m.yaml) |
-| ZHA (untested) | `panic_button_zha.yaml` – pick the ZHA device, optionally the commands | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fwillumpie82%2Fhomeassistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fwillumpie82%2Fpanic_button_zha.yaml) |
+| ZHA | `panic_button_zha.yaml` – pick the ZHA device, commands prefilled for the SNZB-01P (`toggle,on,off`) | [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fwillumpie82%2Fhomeassistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fwillumpie82%2Fpanic_button_zha.yaml) |
 
 Import button not working? In Home Assistant go to **Settings → Automations & Scenes → Blueprints → Import Blueprint**
 and paste the URL:
