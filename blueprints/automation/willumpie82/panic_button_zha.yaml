@@ -1,9 +1,9 @@
 blueprint:
-  name: Panic Button - ZHA v1.0.1
+  name: Panic Button - ZHA v1.0.2
   domain: automation
   description: |
     # 🚨 Panic Button – ZHA
-    **Version: 1.0.1**
+    **Version: 1.0.2**
 
     For a Zigbee button in **ZHA**, prefilled for the **Sonoff SNZB-01P**, which sends the
     commands `toggle`, `on` and `off`. Every press of the selected device fires the alert.
