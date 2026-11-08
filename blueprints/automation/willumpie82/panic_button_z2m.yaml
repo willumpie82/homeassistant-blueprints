@@ -165,7 +165,7 @@ actions:
         {% endif %}
         {% set d = {'tag': 'panic_button', 'ttl': 0, 'priority': 'high', 'push': push} %}
         {% if alert_type == 'critical' %}
-          {% set _ = d.update({'channel': 'alarm_stream'}) %}
+          {% set d = d | combine({'channel': 'alarm_stream'}) %}
         {% endif %}
         {% set buttons = [] %}
         {% if response_1_name | trim != '' %}
@@ -174,8 +174,7 @@ actions:
         {% if response_2_name | trim != '' %}
           {% set buttons = buttons + [{'action': r2_id, 'title': response_2_name}] %}
         {% endif %}
-        {% set _ = d.update({'actions': buttons}) %}
-        {{ d }}
+        {{ d | combine({'actions': buttons}) }}
 
   - alias: Wait for a response
     wait_for_trigger:
