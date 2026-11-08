@@ -151,11 +151,14 @@ variables:
     {% elif notify_device %}
       {{ 'notify.mobile_app_' ~ slugify(device_attr(notify_device, 'name')) }}
     {% endif %}
-  r1_id: "PANIC_R1_{{ context.id }}"
-  r2_id: "PANIC_R2_{{ context.id }}"
   panic_trigger: "{{ trigger }}"
 
 actions:
+  - alias: Create unique response ids
+    variables:
+      r1_id: "PANIC_R1_{{ context.id }}"
+      r2_id: "PANIC_R2_{{ context.id }}"
+
   - alias: Send actionable alert
     action: "{{ notify_target }}"
     data:
