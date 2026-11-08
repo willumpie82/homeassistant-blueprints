@@ -1,9 +1,9 @@
 blueprint:
-  name: Panic Button - Zigbee2MQTT v1.0.3
+  name: Panic Button - Zigbee2MQTT v1.0.4
   domain: automation
   description: |
     # 🚨 Panic Button – Zigbee2MQTT
-    **Version: 1.0.3**
+    **Version: 1.0.4**
 
     Made for the **Sonoff SNZB-01P** (Zigbee2MQTT), e.g. in a 3D-printed
     emergency-stop style housing. Works with any Z2M button that reports the
